@@ -1,0 +1,79 @@
+#gmap {
+    width: 600px;
+    height: 600px;
+}
+
+.mainmap {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    margin: 50px;
+}
+
+.select-time {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+
+}
+
+.gmap-1 {
+    display: flex;
+    flex-direction: column;
+}
+
+.hover-div {
+    position: absolute;
+    width: 250px;
+    height: 230px;
+    background-color: lightgray;
+    z-index: 9999;
+    font-weight: lighter;
+    font-size: small;
+    padding-left: 10px;
+    border-radius: 3px;
+    font-family: Monaco;
+}
+
+.bar {
+    fill: aquamarine;
+}
+
+#chart1, #chart2, #chart3, #chart4, #chart5{
+    border: 2px solid gray;
+    border-radius: 3px;
+    width: 80%;
+    margin-left: 10%;
+    margin-right: 10%;
+    margin-top: 50px;
+    text-align: center;
+}
+
+#chart1, #chart2, #chart3, #chart4, #chart5 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.select-pair {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.homeimg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#tabs {
+    background-color: dimgray;
+    color: darkgray;
+}
+
+select {
+    height: 35px;
+    border-radius: 3px;
+}

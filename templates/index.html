@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Most Polluted Cities</title>
+    <link rel="shortcut icon" href="/static/img/favicon.ico" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="  crossorigin=""/>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" />
+    <script src="../static/scripts/d3.v5.12.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+	<script src="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+</head>
+<body>
+<script>
+    let formatTime = function (date) {
+                var d = new Date(date),
+                    month = '' + (d.getMonth() + 1),
+                    day = '' + d.getDate(),
+                    year = d.getFullYear();
+                    hour = ''+d.getHours();
+
+                if (month.length < 2)
+                    month = '0' + month;
+                if (day.length < 2)
+                    day = '0' + day;
+                if (hour.length < 2)
+                    hour = '0' + hour;
+                return year+'-'+month+'-'+day+' '+hour
+            }
+            let parseDate = d3.timeParse("%Y%m%d%H");
+    let formatDate = function (date) {
+                var d = new Date(date),
+                    month = '' + (d.getMonth() + 1),
+                    day = '' + d.getDate(),
+                    year = d.getFullYear();
+
+                if (month.length < 2)
+                    month = '0' + month;
+                if (day.length < 2)
+                    day = '0' + day;
+
+                return [year, month, day].join('');
+            }
+</script>
+<ul id="tabs" class="nav nav-pills">
+    <li class="active">
+        <a href="#home" data-toggle="tab">
+            Home
+        </a>
+    </li>
+    <li>
+        <a href="#map" data-toggle="tab">
+            Air Pollution Map
+        </a>
+    </li>
+    <li><a href="#AQITrend" data-toggle="tab">AQI Trend</a></li>
+    <li><a href="#AQIAcrossStation" data-toggle="tab">AQI Across Station</a></li>
+    <li><a href="#PM25Trend" data-toggle="tab">PM2.5 Trend</a></li>
+    <li><a href="#AllData" data-toggle="tab">EPA Data</a></li>
+    <li><a href="#TopContributingRegions" data-toggle="tab">Top Contributing Regions</a></li>
+</ul>
+<div id="tabcontent" class="tab-content">
+    <div class="tab-pane fade in active" id="home">
+        <div class="homeimg">
+            <img src="/static/img/pollution.jpeg"  alt="Pollution"/>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="map">
+        <div class="mainmap">
+            <div id="gmap"></div>
+            <div class="gmap-1">
+                <svg id="map-legend" width="308" height="60" style="border: 2px solid gray; border-radius: 3px"></svg>
+                <div class="select-time">
+                    <input type='text' class="form-control" id="datepicker-map"/>
+                    <select class="station-sel-map"></select>
+                </div>
+                <div id="map-chart">
+                <script>
+                    let meta = [{"id":1,"station":"Macleod"},{"id":2,"station":"Brighton"},{"id":3,"station":"Box Hill"},{"id":4,"station":"Alphington"},{"id":5,"station":"Mooroolbark"},{"id":6,"station":"Dandenong ADR"},{"id":7,"station":"Melbourne CBD"},{"id":8,"station":"Dandenong"},{"id":9,"station":"Melton"},{"id":10,"station":"Brooklyn"},{"id":11,"station":"Footscray"},{"id":12,"station":"Pt. Cook"},{"id":13,"station":"Geelong Sth."},{"id":14,"station":"Yinnar"},{"id":15,"station":"Rosedale"},{"id":16,"station":"Newborough"},{"id":17,"station":"Morwell Sth."},{"id":18,"station":"Morwell East"},{"id":19,"station":"Traralgon"},{"id":20,"station":"Moe"},{"id":21,"station":"Churchill"},{"id":22,"station":"Wangaratta"}];
+                    let drawmaptrend = function (data) {
+                        $('#map-chart svg').remove();
+                        const svg = d3
+                      .select('#map-chart')
+                      .append('svg')
+                      .attr('height', 500)
+                      .attr('width', 700)
+                      .append('g')
+                        .attr('transform', 'translate(' + 40 + ',' + 40 + ')');
+
+                    const xPositionScale = d3
+                      .scaleTime()
+                      .domain([0, 23])
+                      .range([0, 600])
+                      ;
+                    const yPositionScale = d3
+                      .scaleLinear()
+                      .domain([0, 15])
+                      .range([400, 0]);
+
+
+                    const line = d3
+                      .line()
+                      .x(function(d) {
+                          let t = d.Time%100;
+                        return xPositionScale(t)
+                      })
+                      .y(function (d) {
+                          if(d.PM25===null) return yPositionScale(0);
+                          else return yPositionScale(d.PM25);
+                      });
+                    svg.append("text")
+                           .attr("x", 350)
+                           .attr("y", 20)
+                           .attr("fill", "#696969")
+                           .attr("font-size", 13)
+                           .attr("text-anchor", "middle")
+                           .text("PM2.5 Chart");
+
+                    svg.append("text")
+                           .attr("x", 0)
+                           .attr("y", 0)
+                           .attr("fill", "#696969")
+                           .attr("font-size", 10)
+                           .attr("text-anchor", "end")
+                           .text("ug/m3");
+
+                            svg
+                                .append('path')
+                                .datum(data)
+                                .attr('d', line)
+                                .attr('fill', 'none')
+                                .attr('stroke', "#00BFFF")
+                                .attr('stroke-width', 2);
+
+                      const xAxis = d3.axisBottom(xPositionScale)
+                      svg
+                        .append('g')
+                        .attr('class', 'axis x-axis')
+                          .attr('transform', 'translate(0,' + 400 + ')')
+                        .call(xAxis.tickValues([0,4,8,12,16,20,23]).tickFormat(function(d){
+                            console.log(d);
+                            return d.toString()+':00';
+                        }))
+
+                      const yAxis = d3.axisLeft(yPositionScale)
+                      svg
+                        .append('g')
+                        .attr('class', 'axis y-axis')
+                        .call(yAxis);
+
+                    };
+                    let choose_map_date = function (date, stationid) {
+                        $.post('/mapchart', {date:date, id:stationid}, function (d) {
+                            drawmaptrend(d);
+                        })
+                    };
+                    choose_map_date(20180101, 13);
+                    for(let station of meta){
+                        $('.station-sel-map').append("<option value =\""+station.id+"\">"+station.station+"</option>")
+                    }
+                    $('.station-sel-map').change(function () {
+                        let station = $('.station-sel-map').val();
+                        let date = formatDate($('#datepicker-map').val());
+                        choose_map_date(date, station);
+                    })
+                </script>
+            </div>
+            </div>
+
+        </div>
+    </div>
+    <div class="tab-pane fade" id="AQITrend">
+        <div id="chart1">
+            <select class="station-sel">
+</select>
+        <script>
+            let drawAQItrend = function (data) {
+                $('#chart1 svg').remove();
+
+                const svg = d3
+              .select('#chart1')
+              .append('svg')
+              .attr('height', 500)
+              .attr('width', 800)
+              .append('g')
+                .attr('transform', 'translate(' + 40 + ',' + 40 + ')');
+                svg.append("text")
+                           .attr("x", 320)
+                           .attr("y", 20)
+                           .attr("fill", "#696969")
+                           .attr("font-size", 13)
+                           .attr("text-anchor", "middle")
+                           .text("EPA AQI Trend Chart");
+            const colors = {
+                2015:'#FFB6C1',
+                2016:'#800080',
+                2017:'#0000FF',
+                2018:'#1E90FF',
+                2019:'#00BFFF'
+            }
+
+            const xPositionScale = d3
+              .scaleTime()
+              .domain([0, 23])
+              .range([0, 600])
+              ;
+            const yPositionScale = d3
+              .scaleLinear()
+              .domain([0, 50])
+              .range([400, 0]);
+
+
+            const line = d3
+              .line()
+              .x(function(d) {
+                return xPositionScale(d.timeid)
+              })
+              .y(d => yPositionScale(d.aqi))
+
+                for(let key in data){
+                    let d = data[key];
+                    svg
+                        .append('path')
+                        .datum(d)
+                        .attr('d', line)
+                        .attr('fill', 'none')
+                        .attr('stroke', colors[key])
+                        .attr('stroke-width', 2);
+                }
+
+              const xAxis = d3.axisBottom(xPositionScale)
+              svg
+                .append('g')
+                .attr('class', 'axis x-axis')
+                  .attr('transform', 'translate(0,' + 400 + ')')
+                .call(xAxis.tickValues([0,4,8,12,16,20,23]).tickFormat(function(d){
+                    console.log(d);
+                    return d.toString()+':00';
+                }))
+
+              const yAxis = d3.axisLeft(yPositionScale)
+              svg
+                .append('g')
+                .attr('class', 'axis y-axis')
+                .call(yAxis)
+
+                let xbegin = 600;
+                let xlen = 30;
+                let ybegin = 100;
+                let ydelta = 20;
+                const legendsvg = svg.append('g').attr('class', 'legend');
+                for(let i=0;i<5;i++){
+                    legendsvg.append('line')
+                        .attr('x1', xbegin)
+                        .attr('y1', ybegin+ydelta*i)
+                        .attr('x2', xbegin+xlen)
+                        .attr('y2', ybegin+ydelta*i)
+                        .attr('stroke', colors[i+2015])
+                        .attr('fill', 'none')
+                }
+                for(let i=0;i<5;i++){
+                    legendsvg.append('text')
+                        .attr('x', xbegin-10)
+                        .attr('y', ybegin+ydelta*i+5)
+                        .attr('font-size', 15)
+                        .text(i+2015)
+                        .attr('text-anchor', 'end')
+                }
+            };
+            let choosestation = function (stationid) {
+                $.post('/chart1', {station:stationid}, function (d) {
+                    drawAQItrend(d);
+                })
+            };
+            choosestation(1);
+            for(let station of meta){
+                $('.station-sel').append("<option value =\""+station.id+"\">"+station.station+"</option>")
+            }
+            $('.station-sel').change(function () {
+                choosestation($(this).val())
+            })
+        </script>
+    </div>
+    </div>
+    <div class="tab-pane fade" id="AQIAcrossStation">
+        <div id="chart2"><select class="date-sel">
+</select>
+        <script>
+            let drawAQIstation = function (data) {
+                data.sort(function (a, b) {
+                    return a.id-b.id;
+                })
+                console.log(data)
+                $('#chart2 svg').remove();
+                const svg = d3
+              .select('#chart2')
+              .append('svg')
+              .attr('height', 550)
+              .attr('width', 800)
+              .append('g')
+                .attr('transform', 'translate(' + 40 + ',' + 40 + ')');
+            const colors = {
+                2015:'#FFB6C1',
+                2016:'#800080',
+                2017:'#0000FF',
+                2018:'#1E90FF',
+                2019:'#00BFFF'
+            }
+
+            const xPositionScale = d3
+              .scaleTime()
+              .domain([-0.5, 22.5])
+              .range([0, 600])
+              ;
+            const yPositionScale = d3
+              .scaleLinear()
+              .domain([0, 300])
+              .range([400, 0]);
+
+
+            svg.append('g').attr('class', 'chart2bar')
+                .selectAll('rect')
+                .data(data)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('x', function (d) {
+                    return xPositionScale(d.id-1);
+                })
+                .attr('y', function (d) {
+                    return yPositionScale(Math.min(d.aqi, 300))
+                })
+                .attr('width', 600/23)
+                .attr('height', function (d) {
+                    return 400-yPositionScale(Math.min(d.aqi, 300))
+                })
+                .on("mouseover", function (d) {
+                    d3.selectAll(".rectshowtext").remove();
+                    svg.append("text")
+                        .attr("class", "rectshowtext")
+                        .attr('x', xPositionScale(d.id-0.5))
+                        .attr('y', yPositionScale(d.aqi)-3)
+                        .attr('text-anchor', "middle")
+                        .attr("fill", "#000000")
+                        .attr("font-size", 10)
+                        .text(d.aqi.toFixed(2));
+                })
+                .on("mouseout", function (d) {
+                    d3.selectAll(".rectshowtext").remove();
+                });
+            const line = d3
+              .line()
+              .x(function(d) {
+                return xPositionScale(d.id-0.5)
+              })
+              .y(d => yPositionScale(Math.min(d.max, 300)));
+            svg
+                        .append('path')
+                        .datum(data)
+                        .attr('d', line)
+                        .attr('fill', 'none')
+                        .attr('stroke', "#6495ED")
+                        .attr('stroke-width', 2);
+            svg.selectAll("circle")
+                    .data(data)
+                    .enter()
+                    .append("circle")
+                    .attr("cx", d => xPositionScale(d.id-0.5))
+                    .attr("cy", d => yPositionScale(Math.min(d.max, 300)))
+                    .attr("r", 3)
+                    .attr("fill", "#000000")
+                    .each(function (d) {
+                        let toolbar = d3.select(this)
+                            .append("title")
+                            .text(function () {
+                                return `Max: ${d.max}, Time: ${d.Time}`;
+                            })
+                    });
+            let showidx=[];
+            for(let i=0;i<22;i++) showidx.push(i);
+              const xAxis = d3.axisBottom(xPositionScale)
+              svg
+                .append('g')
+                .attr('class', 'axis x-axis')
+                  .attr('transform', 'translate(0,' + 400 + ')')
+                .call(xAxis.tickValues(showidx).tickFormat(function(d){
+                    console.log(d);
+                    return meta[d].station
+                })).selectAll("text")
+                  .attr("y", 0)
+                .attr("x", 9)
+                .attr("dy", "-10px")
+                .attr("transform", "rotate(90)")
+                .style("text-anchor", "start");
+
+              const yAxis = d3.axisLeft(yPositionScale)
+              svg
+                .append('g')
+                .attr('class', 'axis y-axis')
+                .call(yAxis);
+              svg.append("text")
+                           .attr("x", 320)
+                           .attr("y", 20)
+                           .attr("fill", "#696969")
+                           .attr("font-size", 13)
+                           .attr("text-anchor", "middle")
+                           .text("AQI Across Stations");
+            };
+            let choosetime = function (timeid) {
+                $.post('/chart2', {time:timeid}, function (d) {
+                    drawAQIstation(d);
+                })
+            };
+            choosetime(0);
+            for(let i=0;i<24;i++){
+                $('.date-sel').append("<option value =\""+i+"\">"+i+":00</option>")
+            }
+            $('.date-sel').change(function () {
+                choosetime($(this).val())
+            })
+        </script></div>
+    </div>
+    <div class="tab-pane fade" id="PM25Trend">
+        <div id="chart3">
+            <div class="select-pair">
+                <select class="station-sel-3"></select>
+                <select class="month-sel-3">
+                    <option value="2015">2015</option>
+                    <option value="2016">2016</option>
+                    <option value="2017">2017</option>
+                    <option value="2018">2018</option>
+                    <option value="2019">2019</option>
+                </select>
+            </div>
+            <script>
+                let drawpm25trend = function(data){
+                    console.log(data);
+                    $('#chart3 svg').remove();
+                    const svg = d3
+                  .select('#chart3')
+                  .append('svg')
+                  .attr('height', 550)
+                  .attr('width', 800)
+                  .append('g')
+                    .attr('transform', 'translate(' + 40 + ',' + 40 + ')');
+
+
+                const xPositionScale = d3
+                  .scaleTime()
+                  .domain([-0.5, 12.5])
+                  .range([0, 600])
+                  ;
+                const yPositionScale = d3
+                  .scaleLinear()
+                  .domain([0, 25])
+                  .range([400, 0]);
+
+
+                svg.append('g').attr('class', 'chart2bar')
+                    .selectAll('rect')
+                    .data(data)
+                    .enter()
+                    .append('rect')
+                    .attr('class', 'bar')
+                    .attr('x', function (d) {
+                        return xPositionScale(d.Month-0.95);
+                    })
+                    .attr('y', function (d) {
+                        return yPositionScale(Math.min(d.PM25, 25))
+                    })
+                    .attr('width', 600/13)
+                    .attr('height', function (d) {
+                        return 400-yPositionScale(Math.min(d.PM25, 25))
+                    })
+                    .on("mouseover", function (d) {
+                        d3.selectAll(".rectshowtext").remove();
+                        svg.append("text")
+                            .attr("class", "rectshowtext")
+                            .attr('x', xPositionScale(d.Month-0.5))
+                            .attr('y', yPositionScale(d.PM25)-3)
+                            .attr('text-anchor', "middle")
+                            .attr("fill", "#000000")
+                            .attr("font-size", 10)
+                            .text(d.PM25.toFixed(2));
+                    })
+                    .on("mouseout", function (d) {
+                        d3.selectAll(".rectshowtext").remove();
+                    });
+                const line = d3
+                  .line()
+                  .x(function(d) {
+                    return xPositionScale(d.Month-0.5)
+                  })
+                  .y(d => yPositionScale(Math.min(d.Max, 25)));
+
+                svg
+                            .append('path')
+                            .datum(data)
+                            .attr('d', line)
+                            .attr('fill', 'none')
+                            .attr('stroke', "#6495ED")
+                            .attr('stroke-width', 2);
+                svg.selectAll("circle")
+                    .data(data)
+                    .enter()
+                    .append("circle")
+                    .attr("cx", d => xPositionScale(d.Month-0.5))
+                    .attr("cy", d => yPositionScale(Math.min(d.Max, 25)))
+                    .attr("r", 3)
+                    .attr("fill", "#000000")
+                    .each(function (d) {
+                        let toolbar = d3.select(this)
+                            .append("title")
+                            .text(function () {
+                                return `Max: ${d.Max}, Time: ${d.Time}`;
+                            })
+                    });
+                let showidx=[];
+                for(let i=0;i<12;i++) showidx.push(i);
+                  const xAxis = d3.axisBottom(xPositionScale)
+                  svg
+                    .append('g')
+                    .attr('class', 'axis x-axis')
+                      .attr('transform', 'translate(0,' + 400 + ')')
+                    .call(xAxis.tickValues(showidx).tickFormat(function(d){
+                        let months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                        return months[d];
+                    })).selectAll("text")
+                      .attr("y", 0)
+                    .attr("x", 9)
+                    .attr("dy", "-20px")
+                    .attr("transform", "rotate(90)")
+                    .style("text-anchor", "start");
+                    svg.append("text")
+                        .attr("x", 8)
+                        .attr("y", 3)
+                        .text("ug/m3")
+                        .attr("fill", "#000000")
+                        .attr("font-size", 10)
+                        .attr("text-anchor", "start")
+                  const yAxis = d3.axisLeft(yPositionScale)
+                  svg
+                    .append('g')
+                    .attr('class', 'axis y-axis')
+                    .call(yAxis);
+                    svg.append("text")
+                               .attr("x", 320)
+                               .attr("y", 20)
+                               .attr("fill", "#696969")
+                               .attr("font-size", 13)
+                               .attr("text-anchor", "middle")
+                               .text("PM2.5 Trend");
+                };
+                let getpm25trend = function(station, year){
+                    $.post('/chart3', {
+                        station:station,
+                        year:year
+                    }, function (data) {
+                        drawpm25trend(data);
+                    })
+                };
+                for(let station of meta){
+                    $('.station-sel-3').append("<option value =\""+station.id+"\">"+station.station+"</option>")
+                }
+                $('.station-sel-3').change(function () {
+                    let station = $(".station-sel-3").val();
+                    let year = $(".month-sel-3").val();
+                    getpm25trend(station, year);
+                });
+                $(".month-sel-3").change(function () {
+                    let station = $(".station-sel-3").val();
+                    let year = $(".month-sel-3").val();
+                    getpm25trend(station, year);
+                });
+                getpm25trend(1, 2015);
+            </script>
+    </div>
+    </div>
+    <div class="tab-pane fade" id="AllData">
+        <div id="chart4">
+            <div class="select-pair">
+                <select class="station-sel-4"></select>
+                <select class="year-sel"></select>
+            </div>
+        <script>
+            let drawTrend = function (data) {
+                $('#chart4 svg').remove();
+                const svg = d3
+              .select('#chart4')
+              .append('svg')
+              .attr('height', 500)
+              .attr('width', 800)
+              .append('g')
+                .attr('transform', 'translate(' + 40 + ',' + 40 + ')');
+                svg.append("text")
+                           .attr("x", 320)
+                           .attr("y", 20)
+                           .attr("fill", "#696969")
+                           .attr("font-size", 13)
+                           .attr("text-anchor", "middle")
+                           .text("EPA Data Chart");
+            const colors = {
+                'CarbonMonoxide':'#FFB6C1',
+                'Ozone':'#800080',
+                'NitrogenDioxide':'#0000FF',
+                'SulfurDioxide':'#1E90FF',
+                'PM25':'#00BFFF',
+                'PM10':'#A0522D',
+                'VisibilityReduction':'#696969'
+            };
+
+            const pkeys=['CarbonMonoxide',
+                'Ozone',
+                'NitrogenDioxide',
+                'SulfurDioxide',
+                'PM10',
+                'VisibilityReduction'];
+
+            const xPositionScale = d3
+              .scaleTime()
+              .domain([0, 23])
+              .range([0, 600])
+              ;
+            const yPositionScale = d3
+              .scaleLinear()
+              .domain([0, 30])
+              .range([400, 0]);
+
+                for(let d of data){
+                    let key = Object.keys(d[0])[0]
+                    const line = d3
+                              .line()
+                              .x(function(d) {
+                                return xPositionScale(d.timeid)
+                              })
+                              .y(d => yPositionScale(d[key]))
+
+                    svg
+                        .append('path')
+                        .datum(d)
+                        .attr('d', line)
+                        .attr('fill', 'none')
+                        .attr('stroke', colors[key])
+                        .attr('stroke-width', 2);
+                }
+
+              const xAxis = d3.axisBottom(xPositionScale)
+              svg
+                .append('g')
+                .attr('class', 'axis x-axis')
+                  .attr('transform', 'translate(0,' + 400 + ')')
+                .call(xAxis.tickValues([0,4,8,12,16,20,23]).tickFormat(function(d){
+                    console.log(d);
+                    return d.toString()+':00';
+                }))
+
+              const yAxis = d3.axisLeft(yPositionScale)
+              svg
+                .append('g')
+                .attr('class', 'axis y-axis')
+                .call(yAxis)
+
+                let xbegin = 600;
+                let xlen = 30;
+                let ybegin = 10;
+                let ydelta = 20;
+                const legendsvg = svg.append('g').attr('class', 'legend');
+                for(let i=0;i<6;i++){
+                    legendsvg.append('line')
+                        .attr('x1', xbegin)
+                        .attr('y1', ybegin+ydelta*i)
+                        .attr('x2', xbegin+xlen)
+                        .attr('y2', ybegin+ydelta*i)
+                        .attr('stroke', colors[pkeys[i]])
+                        .attr('fill', 'none')
+                }
+                for(let i=0;i<6;i++){
+                    legendsvg.append('text')
+                        .attr('x', xbegin-10)
+                        .attr('y', ybegin+ydelta*i+5)
+                        .attr('font-size', 10)
+                        .text(function (d) {
+                            if(pkeys[i] === 'CarbonMonoxide') return 'CarbonMonoxide*50';
+                            else if(pkeys[i] === 'SulfurDioxide') return 'SulfurDioxide*20';
+                            else if(pkeys[i] === 'VisibilityReduction') return 'VisibilityReduction*20'
+                            return pkeys[i]
+                        })
+                        .attr('text-anchor', 'end')
+                }
+            };
+            let choosestation_year = function (stationid, year) {
+                $.post('/chart4', {station:stationid, year:year}, function (d) {
+                    drawTrend(d)
+                })
+            };
+            let years = [2015,2016,2017,2018,2019];
+            choosestation_year(1, 2015);
+            for(let station of meta){
+                $('.station-sel-4').append("<option value =\""+station.id+"\">"+station.station+"</option>")
+            }
+            for(let year of years){
+                $('.year-sel').append("<option value =\""+year+"\">"+year+"</option>")
+            }
+            $('.station-sel-4').change(function () {
+                let station = $('.station-sel-4').val();
+                let year = $('.year-sel').val();
+                choosestation_year(station, year)
+            })
+            $('.year-sel').change(function () {
+                let station = $('.station-sel-4').val();
+                let year = $('.year-sel').val();
+                choosestation_year(station, year)
+            })
+        </script>
+    </div>
+    </div>
+    <div class="tab-pane fade" id="TopContributingRegions">
+        <div id="chart5">
+            <div class="select-pair">
+                <select class="year-sel-5">
+                <option value ="2015">2015</option>
+                <option value ="2016">2016</option>
+                <option value ="2017">2017</option>
+                <option value ="2018">2018</option>
+                <option value ="2019">2019</option>
+            </select>
+                <select class="polution-sel">
+                <option value ="CarbonMonoxide">CarbonMonoxide</option>
+                <option value ="Ozone">Ozone</option>
+                <option value ="NitrogenDioxide">NitrogenDioxide</option>
+                <option value ="SulfurDioxide">SulfurDioxide</option>
+            </select>
+            </div>
+            <script>
+                let drawpancake= function (data, polution) {
+                    $('#chart5 svg').remove();
+                    let pie = d3.pie()
+                            .value(function(d){
+                              return d[polution]
+                            });
+                    let newd = pie(data);
+
+
+                    const svg = d3
+                  .select('#chart5')
+                  .append('svg')
+                  .attr('height', 500)
+                  .attr('width', 800)
+                  .append('g')
+                    .attr('transform', 'translate(' + 40 + ',' + 40 + ')');
+                    svg.append("text")
+                           .attr("x", 320)
+                           .attr("y", 20)
+                           .attr("fill", "#696969")
+                           .attr("font-size", 13)
+                           .attr("text-anchor", "middle")
+                           .text("Top Contributing Regions");
+                    const colors = [
+                        '#FF69B4',
+                        '#6495ED',
+                        '#32CD32'
+                    ]
+                        let outerRadius = 150;
+                    let innerRadius = 0;
+                    let arc = d3.arc()
+                                .outerRadius(outerRadius)
+                                .innerRadius(innerRadius);
+                    var arcs = svg.selectAll('g')
+                          .data(newd)
+                          .enter()
+                          .append('g')
+                          .attr('transform', 'translate(' + 600 / 2 + ',' + 400 / 2 + ')');
+                    // 调用内置颜色序列
+                    arcs.append('path')
+                        .attr('fill', function(d, i){
+                          return colors[i];
+                        })
+                        .attr('d', function(d){
+                          return arc(d);
+                        });
+                    arcs.append('text')
+                        .attr('transform', function(d, i){
+                          var x = arc.centroid(d)[0] * 2.8;
+                          var y = arc.centroid(d)[1] * 2.8;
+                          return 'translate(' + x + ', ' + y + ')';
+                        })
+                        .attr('text-anchor', 'middle')
+                        .attr('font-size', 13)
+                        .attr("fill", "#696969")
+                        .text(function(d){
+                          var percent = Number(d.value)*100;
+                          return d.data.Station + ' ' + percent.toFixed(1) + '%';
+                        })
+
+                };
+                let chooseyear_polution = function (year, polution) {
+                    $.post('/chart5', {year:year, polution:polution}, function (d) {
+                        drawpancake(d, polution);
+                    })
+                };
+                chooseyear_polution(2015, 'CarbonMonoxide');
+                $('.year-sel-5').change(function () {
+                    let year = $('.year-sel-5').val();
+                    let polution = $('.polution-sel').val();
+                    chooseyear_polution(year, polution)
+                });
+                $('.polution-sel').change(function () {
+                    let year = $('.year-sel-5').val();
+                    let polution = $('.polution-sel').val();
+                    chooseyear_polution(year, polution)
+                })
+            </script>
+        </div>
+    </div>
+</div>
+
+<script>
+       /*$('.time-pick').daterangepicker({
+            "timePicker":true,
+            "timePicker24Hour": true,
+            "startDate": "01/01/2015",
+            "endDate": "10/01/2019",
+            "minDate": "01/01/2015",
+            "maxDate": "10/01/2019",
+            "opens": "center"
+       }, function(start, end, label) {
+          console.log('New date range selected: ' + start.format('YYYY-MM-DD hh') + ' to ' + end.format('YYYY-MM-DD hh') + ' (predefined range: ' + label + ')');
+            let sbegin = parseInt(start.format('YYYYMMDDHH'));
+            let send = parseInt(end.format('YYYYMMDDHH'));
+            console.log(sbegin, send);
+            draw(sbegin, send, polys)
+       });*/
+       let map;
+       let colors = ["#808080", "#00BFFF", "#6495ED", "#7B68EE", "#9400D3", "#4B0082"];
+       let summary=['Not Avaliable', 'Very Poor', 'Poor', 'Fair', 'Good', 'Very Good'];
+       function initMap() {
+            map = new google.maps.Map(document.getElementById('gmap'), {
+              center: {lat: -37.814, lng: 144.96332},
+              zoom: 10
+            });
+            $.get('/poly', function (data) {
+            polys = data;
+            for(let poly of polys){
+                poly.type = "FeatureCollection";
+                let feature = [{"type": "Feature","geometry":poly.geometries[0], "properties": {"id":poly.properties.id}}];
+                poly.features = feature;
+            }
+            console.log(polys);
+            draw(20180101, polys);
+        });
+      }
+       let legendmap = d3.select("#map-legend").append("g");
+       let legendmapxb = 10;
+       let legendmapxlen = 50;
+       let legendmapybegin = 5;
+       let legendmapydelta = 15;
+       for(let i=0;i<6;i++){
+           legendmap.append("rect")
+               .attr("x", legendmapxb+legendmapxlen*i)
+               .attr("y", legendmapybegin)
+               .attr("width", legendmapxlen-15)
+               .attr("height", 15)
+               .attr("fill", colors[i]);
+           legendmap.append("text")
+               .attr("x", legendmapxb+legendmapxlen*i+18)
+               .attr("y", legendmapybegin+40)
+               .attr("text-anchor", "middle")
+               .attr("font-size", 10)
+               .text(function (d) {
+                   if(i===0) return "NA";
+                   else if(i===1) return "0-2";
+                   else if(i===2) return "2-4";
+                   else if(i===3) return "4-6";
+                   else if(i===4) return "6-8";
+                   else return ">8";
+
+               })
+       }
+    let polys = null;
+    let draw = function(datetime, polys){
+        $.post('/range', {
+            time: datetime
+        }, function (res) {
+            map.data.forEach(function(fea){map.data.remove(fea)});
+
+            for(let poly of polys){
+                map.data.addGeoJson(poly);
+            }
+            map.data.setStyle(function(feature) {
+                let id = feature.getProperty('id');
+                let one = res.find(function (d) {
+                        return d.Id === id;
+                    });
+                let coloridx = 0;
+                if(one.PM25 === null) coloridx=0;
+                else if(one.PM25<=2) coloridx=1;
+                else if(one.PM25<=4) coloridx=2;
+                else if(one.PM25<=6) coloridx=3;
+                else if(one.PM25<=8) coloridx=4;
+                else coloridx = 5;
+                return {
+                  fillColor: colors[coloridx],
+                    strokeWeight:1,
+                    strokeColor:colors[coloridx],
+                    weight: 5,
+                    fillOpacity: 0.7
+                }
+              });
+            map.data.addListener("mouseover", function (event) {
+                    $('.hover-div').remove();
+                    let property = event.feature.h;
+                    let id = property.id;
+                    let one = res.find(function (d) {
+                        return d.Id === id;
+                    });
+                    let summaryidx = -1;
+                    if(one.Summary === null){
+                        summaryidx = 0;
+                    }
+                    else {
+                        summaryidx = Math.floor(one.Summary);
+                    }
+                    let x = event.xa.clientX+20;
+                    let y = event.xa.clientY+20;
+                    $('body').append('<div class="hover-div" style="top:'+y+'px; left:'+x+'px">' +
+                        '<h4>'+one.Station+'</h4>' +
+                        'CarbonMonoxide: '+(one.CarbonMonoxide===null?null:one.CarbonMonoxide.toFixed(2))+'<br />' +
+                        'Ozone: '+(one.Ozone===null?null:one.Ozone.toFixed(2))+'<br />' +
+                            'NitrogenDioxide: '+(one.NitrogenDioxide===null?null:one.NitrogenDioxide.toFixed(2))+'<br />' +
+                            'SulfurDioxide: '+(one.SulfurDioxide===null?null:one.SulfurDioxide.toFixed(2))+'<br />' +
+                            'PM2.5: '+(one.PM25===null?null:one.PM25.toFixed(2))+'<br />' +
+                            'PM10: '+(one.PM10===null?null:one.PM10.toFixed(2))+'<br />' +
+                            'VisibilityReduction: '+(one.VisibilityReduction===null?null:one.VisibilityReduction.toFixed(2))+'<br />' +
+                            'AQI: '+(one.AQI===null?null:one.AQI.toFixed(2))+'<br />' +
+                            'Summary: '+summary[summaryidx]+'<br />' +
+                        '</div>')
+                });
+                map.data.addListener("mouseout", function (event) {
+                    $('.hover-div').remove();
+                })
+        })
+    };
+    $('#datepicker-map').datepicker({
+        minDate:new Date("01/01/2015"),
+        maxDate:new Date("06/01/2019"),
+        onSelect: function (d) {
+            let day = formatDate(new Date(d));
+            draw(day, polys);
+            let station = $('.station-sel-map').val();
+                let date = formatDate($('#datepicker-map').val());
+                choose_map_date(date, station);
+        }
+    });
+    $( "#datepicker-map" ).datepicker( "setDate", new Date("01/01/2018"));
+
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgPV-OuLcZpL91eiaaXNG0qtSyffp4xPw&callback=initMap" async defer></script>
+</body>
+</html>
