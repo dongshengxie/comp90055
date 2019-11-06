@@ -23,4 +23,4 @@ https://youtu.be/mgW3DX1j9Zs
 - load the project in Pycharm IDE (recommend)
 - install packages list in requirement
 - run app.py
-- press the url in console
+- click the url in console or open in the browser
