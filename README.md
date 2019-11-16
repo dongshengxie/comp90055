@@ -4,14 +4,14 @@ Air pollution data visulization and analysis -Dongsheng Xie & Yanzi Wang
 ## File Structure
 
 ```
-├── static------------------------>including scripts，images and map data
-├── templates--------------------->index.html as frontend web page      
-├── app.py------------------------>backend controller and running file           
-├── database.py------------------->database initialzation
-├── models.py--------------------->database table configuration       
-├── requirement.txt--------------->package dependency file
+├── static------------------------>Including scripts，images and map data
+├── templates--------------------->Index.html as frontend web page      
+├── app.py------------------------>Backend controller and running file           
+├── database.py------------------->Database setup
+├── models.py--------------------->Data table configuration      
+├── requirement.txt--------------->Required package dependencies
 ├── README.md
-└── test.db.zip------------------->sqlite database zipped file       
+└── test.db.zip------------------->Sqlite database zipped file       
 ```
 ## Demo
 Web Demo Video  
