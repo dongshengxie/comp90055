@@ -1,5 +1,5 @@
-# comp90055 2019 semester2 project
-Air pollution data visulization and analysis
+# comp90055 2019 Semester2 project
+Air pollution data visulization and analysis -Dongsheng Xie & Yanzi Wang
 
 ## File Structure
 
