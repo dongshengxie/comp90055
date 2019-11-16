@@ -4,14 +4,14 @@ Air pollution data visulization and analysis
 ## File Structure
 
 ```
-├── static：including scripts，images and map data
-├── templates：index.html as frontend web page      
-├── app.py：backend controller and running file           
-├── database.py：database initialzation
-├── models.py：database table configuration       
-├── requirement.txt：package dependency file
+├── static------------------------>including scripts，images and map data
+├── templates--------------------->index.html as frontend web page      
+├── app.py------------------------>backend controller and running file           
+├── database.py------------------->database initialzation
+├── models.py--------------------->database table configuration       
+├── requirement.txt--------------->package dependency file
 ├── README.md
-└── test.db.zip：sqlite database zipped file       
+└── test.db.zip------------------->sqlite database zipped file       
 ```
 ## Demo
 Web Demo Video  
